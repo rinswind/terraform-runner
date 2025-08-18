@@ -12,48 +12,50 @@ import (
 )
 
 type TerraformRunner struct {
-	WorkingDir string
+	ProjectDir string
+	VarFiles   []string
 	CMD        *tfexec.Terraform
 }
 
-var varFiles []string
-
 func Setup() (*TerraformRunner, error) {
-	log.WithField("version", Env.TerraformVersion).Info("installing terraform version")
+	logger := log.WithField("version", Env.TerraformVersion).WithField("project_dir", Env.ProjectDir)
+
+	// Install terraform to the working_dir
+	logger.Info("installing terraform version")
 
 	installer := &releases.ExactVersion{
 		Product: product.Terraform,
 		Version: version.Must(version.NewVersion(Env.TerraformVersion)),
 
-		InstallDir: "/tmp",
+		InstallDir: Env.ProjectDir,
 	}
 
 	execPath, err := installer.Install(context.Background())
 	if err != nil {
-		log.WithField("version", Env.TerraformVersion).Error("error installing Terraform")
+		logger.WithField("error", err).Error("error installing Terraform")
 		return nil, err
 	}
 
-	workingDir := Env.WorkingDir
-
-	tf, err := tfexec.NewTerraform(workingDir, execPath)
-
+	// Find the var files
+	varFiles, err := getTfVarFilesPaths(Env.VarFilesPath)
 	if err != nil {
-		log.WithField("working_dir", Env.WorkingDir).Error("error running NewTerraform")
+		logger.WithField("error", err).Error("failed to list files in the var files path")
 		return nil, err
 	}
 
-	files, err := getTfVarFilesPaths(Env.VarFilesPath)
-
+	// Setup a terraform exec
+	tf, err := tfexec.NewTerraform(Env.ProjectDir, execPath)
 	if err != nil {
-		log.WithField("error", err).Error("failed to list files in the var files path")
+		logger.WithField("error", err).Error("error running NewTerraform")
+		return nil, err
 	}
 
-	varFiles = files
+	tf.SetLogger(logger)
 
 	return &TerraformRunner{
-		WorkingDir: Env.WorkingDir,
 		CMD:        tf,
+		ProjectDir: Env.ProjectDir,
+		VarFiles:   varFiles,
 	}, nil
 }
 
@@ -69,13 +71,11 @@ func (r *TerraformRunner) Init() error {
 
 func (r *TerraformRunner) SelectWorkspace(workspace string) error {
 	log.WithField("workspace", workspace).Info("selecting workspace")
-
 	if workspace == "" {
 		return nil
 	}
 
 	spaces, current, err := r.CMD.WorkspaceList(context.Background())
-
 	if err != nil {
 		return err
 	}
@@ -101,18 +101,13 @@ func (r *TerraformRunner) SelectWorkspace(workspace string) error {
 func (r *TerraformRunner) Apply(opts ...tfexec.ApplyOption) error {
 	log.Info("running terraform apply")
 
-	if err := r.CMD.Apply(context.Background(), opts...); err != nil {
-		return err
-	}
-
-	return nil
+	return r.CMD.Apply(context.Background(), opts...)
 }
 
 func (r *TerraformRunner) Plan(opts ...tfexec.PlanOption) error {
 	log.Info("running terraform plan")
 
 	diff, err := r.CMD.Plan(context.Background(), opts...)
-
 	if err != nil {
 		return err
 	}
@@ -127,11 +122,7 @@ func (r *TerraformRunner) Plan(opts ...tfexec.PlanOption) error {
 func (r *TerraformRunner) Destroy(opts ...tfexec.DestroyOption) error {
 	log.Info("running terraform destroy")
 
-	if err := r.CMD.Destroy(context.Background(), opts...); err != nil {
-		return err
-	}
-
-	return nil
+	return r.CMD.Destroy(context.Background(), opts...)
 }
 
 func (r *TerraformRunner) GetOutputs() (map[string][]byte, error) {
@@ -155,7 +146,7 @@ func (r *TerraformRunner) GetOutputs() (map[string][]byte, error) {
 func (r *TerraformRunner) GetPlanOptions() []tfexec.PlanOption {
 	opts := []tfexec.PlanOption{}
 
-	for _, path := range varFiles {
+	for _, path := range r.VarFiles {
 		opts = append(opts, tfexec.VarFile(path))
 	}
 
@@ -167,7 +158,7 @@ func (r *TerraformRunner) GetPlanOptions() []tfexec.PlanOption {
 func (r *TerraformRunner) GetApplyOptions() []tfexec.ApplyOption {
 	opts := []tfexec.ApplyOption{}
 
-	for _, path := range varFiles {
+	for _, path := range r.VarFiles {
 		opts = append(opts, tfexec.VarFile(path))
 	}
 
@@ -177,7 +168,7 @@ func (r *TerraformRunner) GetApplyOptions() []tfexec.ApplyOption {
 func (r *TerraformRunner) GetDestroyOptions() []tfexec.DestroyOption {
 	opts := []tfexec.DestroyOption{}
 
-	for _, path := range varFiles {
+	for _, path := range r.VarFiles {
 		opts = append(opts, tfexec.VarFile(path))
 	}
 
