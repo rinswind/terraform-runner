@@ -2,8 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -30,7 +28,6 @@ func filterTfVarsFiles(files []string) []string {
 	fileNames := []string{}
 
 	for _, file := range files {
-
 		if varFileExtensionAllowed(file) {
 			fileNames = append(fileNames, file)
 		}
@@ -39,40 +36,33 @@ func filterTfVarsFiles(files []string) []string {
 	return fileNames
 }
 
-// lists all files in a directory
-func listFilesInDir(path string) ([]fs.FileInfo, error) {
-	files, err := ioutil.ReadDir(path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return files, nil
-}
-
 // lists all files in a directory and its sub directories
-func listFilesInDirNested(basePath string) ([]string, error) {
-	files := []string{}
-	all, err := listFilesInDir(basePath)
-
+func listDirRecursive(basePath string) ([]string, error) {
+	all, err := os.ReadDir(basePath)
 	if err != nil {
 		return nil, err
 	}
+
+	files := []string{}
 
 	for _, f := range all {
-		namePath := fmt.Sprintf("%s/%s", basePath, f.Name())
-
-		if f.IsDir() {
-			listed, err := listFilesInDirNested(namePath)
-
-			if err != nil {
-				return nil, err
-			}
-
-			files = append(files, listed...)
-		} else {
+		if f.Type().IsRegular() {
 			files = append(files, fmt.Sprintf("%s/%s", basePath, f.Name()))
+			continue
 		}
+
+		if !f.Type().IsDir() {
+			continue
+		}
+
+		nestedDirPath := filepath.Join(basePath, f.Name())
+
+		listed, err := listDirRecursive(nestedDirPath)
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files, listed...)
 	}
 
 	return files, nil
@@ -80,8 +70,7 @@ func listFilesInDirNested(basePath string) ([]string, error) {
 
 // return a list of tfvar files
 func getTfVarFilesPaths(path string) ([]string, error) {
-	files, err := listFilesInDirNested(path)
-
+	files, err := listDirRecursive(path)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +81,7 @@ func getTfVarFilesPaths(path string) ([]string, error) {
 // checks whether if file exist
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
+	if err != nil {
 		return false
 	}
 	return !info.IsDir()
