@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/kube-champ/terraform-runner/internal"
 	lib "github.com/kube-champ/terraform-runner/internal"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,13 +22,12 @@ func main() {
 	}
 
 	tf, err := lib.Setup()
-
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 
-	internal.AddSSHKeyIfExist()
+	lib.AddSSHKeyIfExist()
 
 	if err := tf.Init(); err != nil {
 		log.Error(err)
@@ -67,13 +65,11 @@ func main() {
 	}
 
 	if len(outputs) > 0 {
-		err := internal.UpdateSecretWithOutputs(outputs)
-
-		if err != nil {
+		if err := lib.UpdateSecretWithOutputs(outputs); err != nil {
 			log.Panic(err)
 		}
 
-		log.WithField("secretName", internal.Env.OutputSecretName).Info("secret was updated with outputs")
+		log.WithField("secretName", lib.Env.OutputSecretName).Info("secret was updated with outputs")
 	} else {
 		log.Info("no outputs where found in module")
 	}
