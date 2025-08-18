@@ -2,8 +2,6 @@ package internal
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 
@@ -16,20 +14,12 @@ import (
 var ClientSet kubernetes.Interface
 
 func CreateK8SConfig() (*rest.Config, error) {
-	dir, err := os.Getwd()
-
-	if err != nil {
-		log.Error(err, "could not retreive currect directory")
-		return nil, err
-	}
-
-	kubeconfigPath := filepath.Join(dir, "kubeconfig")
-
 	var clientset *kubernetes.Clientset
 	var config *rest.Config
+	var err error
 
-	if fileExists(kubeconfigPath) {
-		if config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath); err != nil {
+	if fileExists(Env.KubeConfigPath) {
+		if config, err = clientcmd.BuildConfigFromFlags("", Env.KubeConfigPath); err != nil {
 			log.Error(err, "failed to create K8s config from kubeconfig")
 			return nil, err
 		}
@@ -41,7 +31,6 @@ func CreateK8SConfig() (*rest.Config, error) {
 	}
 
 	clientset, err = kubernetes.NewForConfig(config)
-
 	if err != nil {
 		log.Error(err, "Failed to create K8s clientset")
 		return nil, err
@@ -56,16 +45,13 @@ func UpdateSecretWithOutputs(outputs map[string][]byte) error {
 	secrets := ClientSet.CoreV1().Secrets(Env.PodNamespace)
 
 	secret, err := secrets.Get(context.Background(), Env.OutputSecretName, metav1.GetOptions{})
-
 	if err != nil {
 		return err
 	}
 
 	secret.Data = outputs
 
-	_, err = secrets.Update(context.Background(), secret, metav1.UpdateOptions{})
-
-	if err != nil {
+	if _, err := secrets.Update(context.Background(), secret, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
