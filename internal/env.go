@@ -12,6 +12,8 @@ type EnvConfig struct {
 	Workspace        string
 	Destroy          bool
 
+	PluginCache string
+
 	// Terraform Project files
 	ProjectDir   string
 	VarFilesPath string
@@ -59,6 +61,8 @@ func LoadEnv() error {
 	env.TerraformVersion = getEnvOrPanic("TERRAFORM_VERSION")
 	env.Workspace = getEnvWithDefault("TERRAFORM_WORKSPACE", "default")
 	env.Destroy = getEnvWithDefaultAsBool("TERRAFORM_DESTROY", false)
+
+	env.PluginCache = getEnvWithDefault("TF_PLUGIN_CACHE_DIR", "")
 
 	env.ProjectDir = getEnvWithDefault("TERRAFORM_PROJECT_PATH", "/tmp/tfproject")
 	env.VarFilesPath = getEnvWithDefault("TERRAFORM_VAR_FILES_PATH", "/tmp/tfvars")

@@ -2,7 +2,12 @@ package internal
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
 
+	"github.com/gofrs/flock"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hc-install/product"
 	"github.com/hashicorp/hc-install/releases"
@@ -67,6 +72,43 @@ func (r *TerraformRunner) Init() error {
 	}
 
 	return nil
+}
+
+func (tr *TerraformRunner) CachingInit(cacheDir string) error {
+	// Ensure cache directory exists
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return fmt.Errorf("failed to create cache directory %s: %w", cacheDir, err)
+	}
+
+	// Create lock file path
+	lockPath := filepath.Join(cacheDir, ".terraform-init.lock")
+	fileLock := flock.New(lockPath)
+
+	// Set timeout for acquiring lock
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	log.WithField("lockPath", lockPath).Info("Attempting to acquire terraform init lock")
+
+	// Try to acquire the lock with timeout
+	locked, err := fileLock.TryLockContext(ctx, 100*time.Millisecond) // retry every 100ms
+	if err != nil {
+		return fmt.Errorf("failed to acquire terraform init lock: %w", err)
+	}
+	if !locked {
+		return fmt.Errorf("timeout waiting for terraform init lock after 5 minutes")
+	}
+
+	defer func() {
+		if err := fileLock.Unlock(); err != nil {
+			log.WithError(err).Error("Failed to release terraform init lock")
+		} else {
+			log.Info("Released terraform init lock")
+		}
+	}()
+
+	log.Info("Acquired terraform init lock, proceeding with init")
+	return tr.Init()
 }
 
 func (r *TerraformRunner) SelectWorkspace(workspace string) error {

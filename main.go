@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	lib "github.com/kube-champ/terraform-runner/internal"
 	log "github.com/sirupsen/logrus"
 )
@@ -11,27 +9,32 @@ func main() {
 	log.SetLevel(log.InfoLevel)
 
 	if err := lib.LoadEnv(); err != nil {
-		log.Error("unable to load environment variables")
-		log.Error(err)
-		os.Exit(1)
+		log.Panic(err)
 	}
 
 	if _, err := lib.CreateK8SConfig(); err != nil {
-		log.Error(err)
-		os.Exit(1)
+		log.Panic(err)
 	}
 
 	tf, err := lib.Setup()
 	if err != nil {
-		log.Error(err)
-		os.Exit(1)
+		log.Panic(err)
 	}
 
 	lib.AddSSHKeyIfExist()
 
-	if err := tf.Init(); err != nil {
-		log.Error(err)
-		os.Exit(1)
+	if lib.Env.PluginCache == "" {
+		log.Info("no plugin cache configured, proceeding with normal init")
+
+		if err := tf.Init(); err != nil {
+			log.Panic(err)
+		}
+	} else {
+		log.Info("plugin cache configured, will wait for init lock")
+
+		if err := tf.CachingInit(lib.Env.PluginCache); err != nil {
+			log.Panic(err)
+		}
 	}
 
 	if lib.Env.Workspace != "" {
@@ -58,9 +61,7 @@ func main() {
 	log.Info("getting outputs from the run")
 
 	outputs, err := tf.GetOutputs()
-
 	if err != nil {
-		log.Error("could not get outputs")
 		log.Panic(err)
 	}
 
@@ -74,5 +75,5 @@ func main() {
 		log.Info("no outputs where found in module")
 	}
 
-	log.Info("Run finished successfully")
+	log.Info("run finished successfully")
 }
