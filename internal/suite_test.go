@@ -33,7 +33,9 @@ func mkdir(dir string) {
 }
 
 const (
-	workDir    string = "/tmp/tfproject"
+	workDir    string = "/tmp/tf-project"
+	cacheDir   string = "/tmp/tf-cache"
+	varDir     string = "/tmp/tf-vars"
 	secretName string = "my-secret"
 	kubeConfig string = "/root/.kube/config"
 )
@@ -42,12 +44,18 @@ var _ = BeforeSuite(func() {
 	os.Setenv("TERRAFORM_VERSION", "1.12.2")
 
 	os.Setenv("TERRAFORM_PROJECT_PATH", workDir)
-	os.Setenv("TERRAFORM_VAR_FILES_PATH", "/tmp/tfvars")
+	os.Setenv("TERRAFORM_VAR_FILES_PATH", varDir)
 	os.Setenv("TERRAFORM_WORKSPACE", "default")
+
+	os.Setenv("TF_PLUGIN_CACHE_DIR", cacheDir)
 
 	os.Setenv("OUTPUT_SECRET_NAME", secretName)
 	os.Setenv("POD_NAMESPACE", "default")
 	os.Setenv("KUBECONFIG", kubeConfig)
 
 	lib.LoadEnv()
+
+	mkdir(workDir)
+	mkdir(varDir)
+	mkdir(cacheDir)
 })

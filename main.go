@@ -23,18 +23,8 @@ func main() {
 
 	lib.AddSSHKeyIfExist()
 
-	if lib.Env.PluginCache == "" {
-		log.Info("no plugin cache configured, proceeding with normal init")
-
-		if err := tf.Init(); err != nil {
-			log.Panic(err)
-		}
-	} else {
-		log.Info("plugin cache configured, will wait for init lock")
-
-		if err := tf.CachingInit(lib.Env.PluginCache); err != nil {
-			log.Panic(err)
-		}
+	if err := tf.Init(); err != nil {
+		log.Panic(err)
 	}
 
 	if lib.Env.Workspace != "" {

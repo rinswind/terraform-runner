@@ -62,7 +62,7 @@ func LoadEnv() error {
 	env.Workspace = getEnvWithDefault("TERRAFORM_WORKSPACE", "default")
 	env.Destroy = getEnvWithDefaultAsBool("TERRAFORM_DESTROY", false)
 
-	env.PluginCache = getEnvWithDefault("TF_PLUGIN_CACHE_DIR", "")
+	env.PluginCache = getEnvOrPanic("TF_PLUGIN_CACHE_DIR")
 
 	env.ProjectDir = getEnvWithDefault("TERRAFORM_PROJECT_PATH", "/tmp/tfproject")
 	env.VarFilesPath = getEnvWithDefault("TERRAFORM_VAR_FILES_PATH", "/tmp/tfvars")
