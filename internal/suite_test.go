@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	lib "github.com/kube-champ/terraform-runner/internal"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	lib "github.com/rinswind/terraform-runner/internal"
 )
 
 func TestTerraform(t *testing.T) {

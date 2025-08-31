@@ -131,8 +131,8 @@ func (tr *TerraformRunner) Init(opts ...tfexec.InitOption) error {
 	}
 	defer tr.releaseCacheLock()
 
-	shell("ls -lahR " + tr.ProjectDir)
-	shell("ls -lahR " + tr.CacheDir)
+	// shell("ls -lahR " + tr.ProjectDir)
+	// shell("ls -lahR " + tr.CacheDir)
 
 	return tr.cmd.Init(context.Background(), tr.GetInitOptions()...)
 }
@@ -169,8 +169,8 @@ func (tr *TerraformRunner) SelectWorkspace(workspace string) error {
 func (tr *TerraformRunner) Plan(opts ...tfexec.PlanOption) error {
 	log.Info("running terraform plan")
 
-	shell("ls -lahR " + tr.ProjectDir)
-	shell("ls -lahR " + tr.CacheDir)
+	// shell("ls -lahR " + tr.ProjectDir)
+	// shell("ls -lahR " + tr.CacheDir)
 
 	diff, err := tr.cmd.Plan(context.Background(), opts...)
 	if err != nil {

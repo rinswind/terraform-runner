@@ -18,5 +18,7 @@ testbin/*
 *.env
 *kubeconfig
 
-/config/local
+/config/samples-local
 .vscode
+
+__debug*

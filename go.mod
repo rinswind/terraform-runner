@@ -1,4 +1,4 @@
-module github.com/kube-champ/terraform-runner
+module github.com/rinswind/terraform-runner
 
 go 1.24.0
 

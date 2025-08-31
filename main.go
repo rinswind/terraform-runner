@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	lib "github.com/kube-champ/terraform-runner/internal"
+	lib "github.com/rinswind/terraform-runner/internal"
 	log "github.com/sirupsen/logrus"
 )
 

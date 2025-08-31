@@ -22,10 +22,10 @@ jobs:
       - name: docker build
         run: docker build -t ${IMG} .
         env:
-          IMG: kubechamp/terraform-runner:${{ steps.release_version.outputs.tag }}
+          IMG: rinswind/terraform-runner:${{ steps.release_version.outputs.tag }}
 
       - name: docker push
         run: docker push ${IMG}
         env:
-          IMG: kubechamp/terraform-runner:${{ steps.release_version.outputs.tag }}
+          IMG: rinswind/terraform-runner:${{ steps.release_version.outputs.tag }}
 

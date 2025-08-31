@@ -4,9 +4,9 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/kube-champ/terraform-runner/internal"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/rinswind/terraform-runner/internal"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
