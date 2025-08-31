@@ -31,13 +31,15 @@ var _ = Describe("terraform helper", func() {
 
 		mkdir(workDir)
 		writeFile(fmt.Sprintf("%s/main.tf", workDir), tfmodule)
+
+		mkdir(cacheDir)
 	})
 
 	When("terraform", func() {
 		Context("installation & setup", func() {
 			It("should install and setup terraform binary", func() {
-				runner, err := lib.Setup()
-				tf = runner
+				tf = lib.NewTerraformRunner("1.13.1", workDir, cacheDir, "")
+				err := tf.Setup()
 
 				Expect(err).To(BeNil())
 			})

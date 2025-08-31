@@ -70,6 +70,10 @@ func listDirRecursive(basePath string) ([]string, error) {
 
 // return a list of tfvar files
 func getTfVarFilesPaths(path string) ([]string, error) {
+	if !dirExists(path) {
+		return []string{}, nil
+	}
+
 	files, err := listDirRecursive(path)
 	if err != nil {
 		return nil, err
@@ -85,4 +89,12 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func dirExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
 }

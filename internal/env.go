@@ -4,9 +4,12 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type EnvConfig struct {
+	LogLevel string
+
 	// Terraform execution
 	TerraformVersion string
 	Workspace        string
@@ -25,6 +28,27 @@ type EnvConfig struct {
 }
 
 var Env *EnvConfig
+
+func LoadEnv() {
+	env := &EnvConfig{}
+
+	env.LogLevel = strings.ToLower(getEnvWithDefault("LOG_LEVEL", "info"))
+
+	env.TerraformVersion = getEnvOrPanic("TERRAFORM_VERSION")
+	env.Workspace = getEnvWithDefault("TERRAFORM_WORKSPACE", "default")
+	env.Destroy = getEnvWithDefaultAsBool("TERRAFORM_DESTROY", false)
+
+	env.PluginCache = getEnvOrPanic("TF_PLUGIN_CACHE_DIR")
+
+	env.ProjectDir = getEnvWithDefault("TERRAFORM_PROJECT_PATH", "/tmp/tf-project")
+	env.VarFilesPath = getEnvWithDefault("TERRAFORM_VAR_FILES_PATH", "/tmp/tf-vars")
+
+	env.PodNamespace = getEnvOrPanic("POD_NAMESPACE")
+	env.OutputSecretName = getEnvOrPanic("OUTPUT_SECRET_NAME")
+	env.KubeConfigPath = getEnvWithDefault("KUBECONFIG", "")
+
+	Env = env
+}
 
 func getEnvOrPanic(name string) string {
 	env, present := os.LookupEnv(name)
@@ -53,25 +77,4 @@ func getEnvWithDefaultAsBool(name string, def bool) bool {
 	val, _ := strconv.ParseBool(env)
 
 	return val
-}
-
-func LoadEnv() error {
-	env := &EnvConfig{}
-
-	env.TerraformVersion = getEnvOrPanic("TERRAFORM_VERSION")
-	env.Workspace = getEnvWithDefault("TERRAFORM_WORKSPACE", "default")
-	env.Destroy = getEnvWithDefaultAsBool("TERRAFORM_DESTROY", false)
-
-	env.PluginCache = getEnvOrPanic("TF_PLUGIN_CACHE_DIR")
-
-	env.ProjectDir = getEnvWithDefault("TERRAFORM_PROJECT_PATH", "/tmp/tfproject")
-	env.VarFilesPath = getEnvWithDefault("TERRAFORM_VAR_FILES_PATH", "/tmp/tfvars")
-
-	env.PodNamespace = getEnvOrPanic("POD_NAMESPACE")
-	env.OutputSecretName = getEnvOrPanic("OUTPUT_SECRET_NAME")
-	env.KubeConfigPath = getEnvWithDefault("KUBECONFIG", "")
-
-	Env = env
-
-	return nil
 }

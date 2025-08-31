@@ -1,56 +1,65 @@
 package main
 
 import (
+	"os"
+
 	lib "github.com/kube-champ/terraform-runner/internal"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	log.SetLevel(log.InfoLevel)
+	lib.LoadEnv()
 
-	if err := lib.LoadEnv(); err != nil {
-		log.Panic(err)
+	loglLevel, err := log.ParseLevel(lib.Env.LogLevel)
+	if err != nil {
+		log.Panicf("failed to parse log level from '%s': %v", lib.Env.LogLevel, err)
 	}
+
+	log.SetLevel(loglLevel)
 
 	if _, err := lib.CreateK8SConfig(); err != nil {
 		log.Panic(err)
 	}
 
-	tf, err := lib.Setup()
-	if err != nil {
-		log.Panic(err)
+	// Ensure cache directory exists
+	if err := os.MkdirAll(lib.Env.PluginCache, 0755); err != nil {
+		log.WithField("cacheDir", lib.Env.PluginCache).Panic(err)
 	}
 
 	lib.AddSSHKeyIfExist()
 
-	if err := tf.Init(); err != nil {
+	tr := lib.NewTerraformRunner(lib.Env.TerraformVersion, lib.Env.ProjectDir, lib.Env.PluginCache, lib.Env.VarFilesPath)
+
+	err = tr.Setup()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	if err := tr.Init(tr.GetInitOptions()...); err != nil {
 		log.Panic(err)
 	}
 
 	if lib.Env.Workspace != "" {
-		if err := tf.SelectWorkspace(lib.Env.Workspace); err != nil {
+		if err := tr.SelectWorkspace(lib.Env.Workspace); err != nil {
 			log.WithField("workspace", lib.Env.Workspace).Panic(err)
 		}
 	}
 
-	// run an initial plan
-	if err := tf.Plan(tf.GetPlanOptions()...); err != nil {
+	if err := tr.Plan(tr.GetPlanOptions()...); err != nil {
 		log.Panic(err)
 	}
 
 	if !lib.Env.Destroy {
-		if err := tf.Apply(tf.GetApplyOptions()...); err != nil {
+		if err := tr.Apply(tr.GetApplyOptions()...); err != nil {
 			log.Panic(err)
 		}
 	} else {
-		if err := tf.Destroy(tf.GetDestroyOptions()...); err != nil {
+		if err := tr.Destroy(tr.GetDestroyOptions()...); err != nil {
 			log.Panic(err)
 		}
 	}
 
-	log.Info("getting outputs from the run")
-
-	outputs, err := tf.GetOutputs()
+	outputs, err := tr.GetOutputs()
 	if err != nil {
 		log.Panic(err)
 	}
